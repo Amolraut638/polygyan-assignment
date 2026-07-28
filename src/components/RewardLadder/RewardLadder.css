@@ -1,5 +1,17 @@
 @import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Space+Grotesk:wght@500;700&family=Open+Sans:wght@400;600;700&display=swap");
 
+/* Reset so the page itself never scrolls — only the reward list (below)
+   gets its own internal scroll region. Safe as a global rule since this
+   component is meant to be the whole page. If App.jsx already has its own
+   global reset, these are redundant but harmless. */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
 .rl-wrap {
   /* ---- tokens pulled from the live ambassador page ---- */
   --rl-bg: oklch(17% 0.005 250);
@@ -21,11 +33,17 @@
   --rl-font-display: "Bricolage Grotesque", "Space Grotesk", ui-sans-serif, sans-serif;
   --rl-font-body: "Open Sans", ui-sans-serif, sans-serif;
 
+  /* fills exactly one screen — nothing about this component causes the
+     page to grow taller than the viewport */
   position: relative;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
   background: var(--rl-bg);
   color: var(--rl-fg);
   font-family: var(--rl-font-body);
-  padding: 3.5rem 1.5rem;
+  padding: 2rem 1.5rem;
+  box-sizing: border-box;
   border-radius: 24px;
   overflow: hidden;
 }
@@ -42,8 +60,9 @@
   position: relative;
   z-index: 1;
   max-width: 640px;
-  margin: 0 auto 2.5rem;
+  margin: 0 auto 1.25rem;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .rl-title {
@@ -70,10 +89,13 @@
   position: relative;
   z-index: 1;
   max-width: 920px;
+  width: 100%;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 300px 1fr;
   gap: 28px;
+  flex: 1;
+  min-height: 0; /* critical: lets grid children shrink instead of pushing the page taller */
 }
 
 @media (max-width: 720px) {
@@ -81,14 +103,15 @@
     grid-template-columns: 1fr;
   }
   .rl-path-col {
-    height: 260px;
+    height: 160px;
   }
 }
 
 /* ---------- PATH ---------- */
 .rl-path-col {
   position: relative;
-  height: 520px;
+  height: 100%;
+  min-height: 0;
 }
 
 .rl-path-svg {
@@ -212,6 +235,8 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  height: 100%;
+  min-height: 0;
 }
 
 .rl-counter-card {
@@ -219,6 +244,7 @@
   border: 1px solid var(--rl-border);
   border-radius: 14px;
   padding: 22px 20px;
+  flex-shrink: 0;
 }
 
 .rl-counter-top {
@@ -297,10 +323,11 @@
   flex-direction: column;
   gap: 12px;
 
-  /* make this its own scroll region instead of letting the panel grow
-     past the viewport — matches the height of the path column so the
-     two sides stay visually aligned */
-  max-height: 520px;
+  /* fills whatever space is left in the panel below the counter card,
+     instead of a fixed max-height — this is what keeps the whole
+     component locked to one viewport regardless of screen size */
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 6px;
@@ -320,11 +347,6 @@
   display: none; /* WebKit/Chromium */
 }
 
-@media (max-width: 720px) {
-  .rl-reward-list {
-    max-height: 360px;
-  }
-}
 
 .rl-reward-row {
   position: relative;
