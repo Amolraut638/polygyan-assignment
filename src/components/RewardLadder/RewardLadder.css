@@ -271,14 +271,17 @@
 }
 
 .rl-scale {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  height: 14px;
   margin-top: 6px;
 }
 
-.rl-scale span {
+.rl-scale-tick {
+  position: absolute;
+  top: 0;
   font-size: 11px;
   color: var(--rl-scale-num);
+  white-space: nowrap;
 }
 
 .rl-status {
@@ -293,6 +296,34 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+
+  /* make this its own scroll region instead of letting the panel grow
+     past the viewport — matches the height of the path column so the
+     two sides stay visually aligned */
+  max-height: 520px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  scroll-behavior: smooth;
+}
+
+/* fully invisible scrollbar — list still scrolls (via JS scrollTo above,
+   and manually with mouse/trackpad), it just doesn't show a track/thumb */
+.rl-reward-list {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* old Edge/IE */
+}
+
+.rl-reward-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none; /* WebKit/Chromium */
+}
+
+@media (max-width: 720px) {
+  .rl-reward-list {
+    max-height: 360px;
+  }
 }
 
 .rl-reward-row {

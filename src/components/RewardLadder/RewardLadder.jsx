@@ -53,6 +53,8 @@ export default function RewardLadder() {
   const [regs, setRegs] = useState(0);
   const pathRef = useRef(null);
   const [totalLen, setTotalLen] = useState(0);
+  const rewardListRef = useRef(null);
+  const rowRefs = useRef([]);
 
   useEffect(() => {
     if (pathRef.current) setTotalLen(pathRef.current.getTotalLength());
@@ -61,12 +63,12 @@ export default function RewardLadder() {
   // figure out which segment we're in
   const { idx, overallFrac, current } = useMemo(() => {
     let i = 0;
-    for (let k = 0; k < MILESTONES.length - 1; k++) {
+    for (let k = 0; k < MILESTONES.length; k++) {
       if (regs >= MILESTONES[k].value) i = k;
     }
     const cur = MILESTONES[i];
     const next = MILESTONES[i + 1];
-    const segFrac = next ? Math.min(1, (regs - cur.value) / (next.value - cur.value)) : 1;
+    const segFrac = next ? Math.min(1, (regs - cur.value) / (next.value - cur.value)) : 0;
     const frac = (i + segFrac) / (MILESTONES.length - 1);
     return { idx: i, overallFrac: frac, current: cur };
   }, [regs]);
@@ -75,6 +77,44 @@ export default function RewardLadder() {
     if (!pathRef.current || !totalLen) return { x: 0, y: 0 };
     return pathRef.current.getPointAtLength(overallFrac * totalLen);
   }, [overallFrac, totalLen]);
+
+  // when regs lands exactly on a milestone, the marker would sit right on
+  // top of that coin and cover its icon — hide it in that case, since the
+  // coin's own glow/pulse already communicates "you are here"
+  const isAtMilestone = MILESTONES.some((m) => m.value === regs);
+
+  // keep the currently-active reward row in view inside its own scroll
+  // container as the slider crosses milestones. Deliberately NOT using
+  // row.scrollIntoView() here — it walks up the entire scroll chain and
+  // will also scroll the page/window to satisfy the request. Instead we
+  // compute the row's position relative to the list container only and
+  // move that container's scrollTop directly, so nothing outside the
+  // reward panel ever moves.
+  useEffect(() => {
+    const container = rewardListRef.current;
+    const row = rowRefs.current[idx];
+    if (!container || !row) return;
+
+    // explicit guarantee: back at the very start, always snap the list
+    // fully back to its top position (the general row-position check
+    // below would also land here, but this makes the reset case explicit
+    // and doesn't depend on offsetTop math)
+    if (regs === 0) {
+      container.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    const rowTop = row.offsetTop;
+    const rowBottom = rowTop + row.offsetHeight;
+    const viewTop = container.scrollTop;
+    const viewBottom = viewTop + container.clientHeight;
+
+    if (rowTop < viewTop) {
+      container.scrollTo({ top: rowTop, behavior: "smooth" });
+    } else if (rowBottom > viewBottom) {
+      container.scrollTo({ top: rowBottom - container.clientHeight, behavior: "smooth" });
+    }
+  }, [idx, regs]);
 
   return (
     <section className="rl-wrap">
@@ -129,7 +169,7 @@ export default function RewardLadder() {
               );
             })}
 
-          {totalLen > 0 && (
+          {totalLen > 0 && !isAtMilestone && (
             <div
               className="rl-marker"
               style={{ left: `${(markerPos.x / 340) * 100}%`, top: `${(markerPos.y / 560) * 100}%` }}
@@ -155,14 +195,31 @@ export default function RewardLadder() {
               onChange={(e) => setRegs(parseInt(e.target.value, 10))}
             />
             <div className="rl-scale">
-              {MILESTONES.map((m) => (
-                <span key={m.value}>{m.value}</span>
-              ))}
+              {MILESTONES.map((m) => {
+                const fraction = m.value / MAX;
+                // native range thumbs are inset by half their width on each
+                // side, so raw % position doesn't match where the thumb
+                // actually sits — THUMB must match the thumb width in CSS
+                const THUMB = 20;
+                const offsetPx = THUMB / 2 - fraction * THUMB;
+                return (
+                  <span
+                    key={m.value}
+                    className="rl-scale-tick"
+                    style={{
+                      left: `calc(${fraction * 100}% + ${offsetPx}px)`,
+                      transform: "translateX(-50%)",
+                    }}
+                  >
+                    {m.value}
+                  </span>
+                );
+              })}
             </div>
             <p className="rl-status">You're at {current.title}.</p>
           </div>
 
-          <div className="rl-reward-list">
+          <div className="rl-reward-list" ref={rewardListRef}>
             {MILESTONES.map((m, i) => {
               const unlocked = regs >= m.value;
               const isCurrent = i === idx;
@@ -170,6 +227,7 @@ export default function RewardLadder() {
               return (
                 <div
                   key={m.value}
+                  ref={(el) => (rowRefs.current[i] = el)}
                   className={`rl-reward-row ${unlocked ? "is-unlocked" : "is-locked"} ${
                     isCurrent ? "is-current" : ""
                   }`}

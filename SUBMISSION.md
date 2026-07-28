@@ -9,6 +9,8 @@
 
 A winding "quest path" instead of a flat progress bar — an SVG path with milestone coins placed along it using `getPointAtLength()`. Dragging the slider moves a glowing marker along the path, and each coin flips from locked-grey to the site's gold coin gradient the moment its threshold is crossed, with the matching reward card animating in below.
 
+The reward panel on the right is its own scroll region that auto-scrolls to keep the active milestone in view as the slider moves — so the current reward card never gets pushed off-screen, without the page itself jumping around.
+
 Design tokens (background color, card borders, the gold gradient, fonts) were pulled directly from the live ambassador page's computed CSS, so this slots in as an extension of the existing site rather than a visual mismatch.
 
 ## 2. System-level thinking
